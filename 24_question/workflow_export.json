@@ -1,0 +1,81 @@
+{
+  "name": "workflow_n8n_habr_parser",
+  "nodes": [
+    {
+      "parameters": {
+        "language": "pythonNative",
+        "pythonCode": "from bs4 import BeautifulSoup\n\ndef parse_articles(html):\n    soup = BeautifulSoup(html, 'html.parser')\n    articles = []\n    \n    article_blocks = soup.find_all('article', class_='tm-article-snippet')\n    if not article_blocks:\n        article_blocks = soup.find_all('div', class_='tm-article-snippet')\n    \n    if not article_blocks:\n        title_elements = soup.find_all('h2', class_='tm-title')\n        for title_elem in title_elements[:5]:\n            title_link = title_elem.find('a')\n            if title_link:\n                title_text = title_link.get_text(strip=True)\n                articles.append({\n                    'title': title_text,\n                    'index': len(articles) + 1\n                })\n    else:\n        for idx, article in enumerate(article_blocks[:5], 1):\n            title_elem = article.find('h2', class_='tm-title')\n            if not title_elem:\n                title_elem = article.find('h2') or article.find('h1')\n            \n            if title_elem:\n                link = title_elem.find('a')\n                if link:\n                    title_text = link.get_text(strip=True)\n                else:\n                    title_text = title_elem.get_text(strip=True)\n            else:\n                link = article.find('a', class_='tm-article-snippet__title-link')\n                if link:\n                    title_text = link.get_text(strip=True)\n                else:\n                    title_text = \"Заголовок не найден\"\n            \n            articles.append({\n                'title': title_text,\n                'index': idx\n            })\n    \n    return articles[:5]\n\ninput_data = _items[0]['json']\nhtml_content = input_data[\"data\"]\nresult = parse_articles(html_content)\nreturn [{\"json\": {\"articles\": result}}]"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 0],
+      "id": "b5df5ce4-c0ea-4bf8-8106-ee74c47912a3",
+      "name": "Code in Python"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0],
+      "id": "8c9c0141-32d0-4687-9221-adf2d73e212b",
+      "name": "When clicking 'Execute workflow'"
+    },
+    {
+      "parameters": {
+        "url": "https://habr.com/ru/hubs/webdev/articles/",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [224, 0],
+      "id": "e32b8002-a905-47e7-bdd7-fa9e8937d55d",
+      "name": "HTTP Request"
+    }
+  ],
+  "pinData": {
+    "When clicking 'Execute workflow'": [
+      {
+        "json": {
+          "query": {
+            "date": "19.05.2026"
+          }
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When clicking 'Execute workflow'": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code in Python",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "2d34b519-d9fe-4669-a269-b5a8bbbebe34",
+  "meta": {
+    "instanceId": "b253b618cf91fe954c5becd1a66e9dd2cc1b4ba7ddae60e79b736ee66195e9c6"
+  },
+  "id": "habr-parser-workflow-final",
+  "tags": []
+}
